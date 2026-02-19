@@ -1,11 +1,14 @@
 //! Integration tests for the MiniC parser.
 
+use nom::combinator::all_consuming;
 use MiniC::ir::ast::{Expr, Literal, Stmt};
 use MiniC::parser::{
-    assignment, expression, fun_decl, identifier, literal, statement,
-    literals::{integer_literal, float_literal, string_literal, boolean_literal, Literal as ParserLiteral},
+    assignment, expression, fun_decl, identifier, literal,
+    literals::{
+        boolean_literal, float_literal, integer_literal, string_literal, Literal as ParserLiteral,
+    },
+    statement,
 };
-use nom::combinator::all_consuming;
 
 // --- Literals ---
 
@@ -44,8 +47,14 @@ fn test_string_simple() {
 #[test]
 fn test_string_escapes() {
     assert_eq!(string_literal(r#""a\"b""#), Ok(("", r#"a"b"#.to_string())));
-    assert_eq!(string_literal(r#""line1\nline2""#), Ok(("", "line1\nline2".to_string())));
-    assert_eq!(string_literal(r#""tab\there""#), Ok(("", "tab\there".to_string())));
+    assert_eq!(
+        string_literal(r#""line1\nline2""#),
+        Ok(("", "line1\nline2".to_string()))
+    );
+    assert_eq!(
+        string_literal(r#""tab\there""#),
+        Ok(("", "tab\there".to_string()))
+    );
 }
 
 #[test]
@@ -64,7 +73,10 @@ fn test_boolean_reject() {
 fn test_literal_combined() {
     assert_eq!(literal("42"), Ok(("", ParserLiteral::Int(42))));
     assert_eq!(literal("3.14"), Ok(("", ParserLiteral::Float(3.14))));
-    assert_eq!(literal(r#""hi""#), Ok(("", ParserLiteral::Str("hi".to_string()))));
+    assert_eq!(
+        literal(r#""hi""#),
+        Ok(("", ParserLiteral::Str("hi".to_string())))
+    );
     assert_eq!(literal("true"), Ok(("", ParserLiteral::Bool(true))));
 }
 
@@ -105,33 +117,45 @@ fn test_identifier_accept_true_prefix() {
 
 #[test]
 fn test_primary_literal() {
-    assert_eq!(
-        expression("42"),
-        Ok(("", Expr::Literal(Literal::Int(42))))
-    );
+    assert_eq!(expression("42"), Ok(("", Expr::Literal(Literal::Int(42)))));
     assert_eq!(
         expression("true"),
         Ok(("", Expr::Literal(Literal::Bool(true))))
     );
-    assert_eq!(
-        expression("x"),
-        Ok(("", Expr::Ident("x".to_string())))
-    );
+    assert_eq!(expression("x"), Ok(("", Expr::Ident("x".to_string()))));
 }
 
 #[test]
 fn test_arithmetic() {
     assert_eq!(
         expression("1 + 2"),
-        Ok(("", Expr::Add(Box::new(Expr::Literal(Literal::Int(1))), Box::new(Expr::Literal(Literal::Int(2))))))
+        Ok((
+            "",
+            Expr::Add(
+                Box::new(Expr::Literal(Literal::Int(1))),
+                Box::new(Expr::Literal(Literal::Int(2)))
+            )
+        ))
     );
     assert_eq!(
         expression("10 - 3"),
-        Ok(("", Expr::Sub(Box::new(Expr::Literal(Literal::Int(10))), Box::new(Expr::Literal(Literal::Int(3))))))
+        Ok((
+            "",
+            Expr::Sub(
+                Box::new(Expr::Literal(Literal::Int(10))),
+                Box::new(Expr::Literal(Literal::Int(3)))
+            )
+        ))
     );
     assert_eq!(
         expression("4 * 5"),
-        Ok(("", Expr::Mul(Box::new(Expr::Literal(Literal::Int(4))), Box::new(Expr::Literal(Literal::Int(5))))))
+        Ok((
+            "",
+            Expr::Mul(
+                Box::new(Expr::Literal(Literal::Int(4))),
+                Box::new(Expr::Literal(Literal::Int(5)))
+            )
+        ))
     );
     assert_eq!(
         expression("-x"),
@@ -177,18 +201,9 @@ fn test_parentheses() {
 
 #[test]
 fn test_relational() {
-    assert!(matches!(
-        expression("a == b").unwrap().1,
-        Expr::Eq(_, _)
-    ));
-    assert!(matches!(
-        expression("x < 5").unwrap().1,
-        Expr::Lt(_, _)
-    ));
-    assert!(matches!(
-        expression("1 + 2 < 5").unwrap().1,
-        Expr::Lt(_, _)
-    ));
+    assert!(matches!(expression("a == b").unwrap().1, Expr::Eq(_, _)));
+    assert!(matches!(expression("x < 5").unwrap().1, Expr::Lt(_, _)));
+    assert!(matches!(expression("1 + 2 < 5").unwrap().1, Expr::Lt(_, _)));
 }
 
 #[test]
@@ -219,10 +234,7 @@ fn test_boolean_expr() {
         expression("true and false").unwrap().1,
         Expr::And(_, _)
     ));
-    assert!(matches!(
-        expression("!x").unwrap().1,
-        Expr::Not(_)
-    ));
+    assert!(matches!(expression("!x").unwrap().1, Expr::Not(_)));
     assert!(matches!(
         expression("x < 5 and y > 0").unwrap().1,
         Expr::And(_, _)
@@ -245,10 +257,14 @@ fn test_invalid_unbalanced_paren() {
 #[test]
 fn test_simple_assignment() {
     let result = assignment("x = 42").unwrap().1;
-    assert!(matches!(result, Stmt::Assign { target, value } if target == "x" && *value == Expr::Literal(Literal::Int(42))));
+    assert!(
+        matches!(result, Stmt::Assign { target, value } if target == "x" && *value == Expr::Literal(Literal::Int(42)))
+    );
 
     let result = assignment("count = 0").unwrap().1;
-    assert!(matches!(result, Stmt::Assign { target, value } if target == "count" && *value == Expr::Literal(Literal::Int(0))));
+    assert!(
+        matches!(result, Stmt::Assign { target, value } if target == "count" && *value == Expr::Literal(Literal::Int(0)))
+    );
 }
 
 #[test]
@@ -269,13 +285,19 @@ fn test_assignment_with_expression() {
 #[test]
 fn test_assignment_whitespace() {
     let result = assignment("x=1").unwrap().1;
-    assert!(matches!(result, Stmt::Assign { target, value } if target == "x" && *value == Expr::Literal(Literal::Int(1))));
+    assert!(
+        matches!(result, Stmt::Assign { target, value } if target == "x" && *value == Expr::Literal(Literal::Int(1)))
+    );
 
     let result = assignment("x = 1").unwrap().1;
-    assert!(matches!(result, Stmt::Assign { target, value } if target == "x" && *value == Expr::Literal(Literal::Int(1))));
+    assert!(
+        matches!(result, Stmt::Assign { target, value } if target == "x" && *value == Expr::Literal(Literal::Int(1)))
+    );
 
     let result = assignment("x  =  1").unwrap().1;
-    assert!(matches!(result, Stmt::Assign { target, value } if target == "x" && *value == Expr::Literal(Literal::Int(1))));
+    assert!(
+        matches!(result, Stmt::Assign { target, value } if target == "x" && *value == Expr::Literal(Literal::Int(1)))
+    );
 }
 
 #[test]
@@ -288,8 +310,17 @@ fn test_invalid_assignment() {
 #[test]
 fn test_if_without_else() {
     let result = statement("if x then y = 1").unwrap().1;
-    assert!(matches!(result, Stmt::If { else_branch: None, .. }));
-    if let Stmt::If { cond, then_branch, .. } = result {
+    assert!(matches!(
+        result,
+        Stmt::If {
+            else_branch: None,
+            ..
+        }
+    ));
+    if let Stmt::If {
+        cond, then_branch, ..
+    } = result
+    {
         assert!(matches!(cond.as_ref(), Expr::Ident(s) if s == "x"));
         assert!(matches!(then_branch.as_ref(), Stmt::Assign { target, .. } if target == "y"));
     }
@@ -298,7 +329,13 @@ fn test_if_without_else() {
 #[test]
 fn test_if_with_else() {
     let result = statement("if x then y = 1 else y = 0").unwrap().1;
-    assert!(matches!(result, Stmt::If { else_branch: Some(_), .. }));
+    assert!(matches!(
+        result,
+        Stmt::If {
+            else_branch: Some(_),
+            ..
+        }
+    ));
     if let Stmt::If { else_branch, .. } = result {
         let else_s = else_branch.unwrap();
         assert!(matches!(else_s.as_ref(), Stmt::Assign { ref target, .. } if target == "y"));
@@ -388,13 +425,17 @@ fn test_fun_decl_no_params() {
     let result = fun_decl("def bar() x = 1").unwrap().1;
     assert_eq!(result.name, "bar");
     assert!(result.params.is_empty());
-    assert!(matches!(result.body.as_ref(), Stmt::Assign { target, value } if target == "x" && value.as_ref() == &Expr::Literal(Literal::Int(1))));
+    assert!(
+        matches!(result.body.as_ref(), Stmt::Assign { target, value } if target == "x" && value.as_ref() == &Expr::Literal(Literal::Int(1)))
+    );
 }
 
 #[test]
 fn test_call_as_expression() {
     let result = expression("foo(1, 2)").unwrap().1;
-    assert!(matches!(result, Expr::Call { ref name, ref args } if name == "foo" && args.len() == 2));
+    assert!(
+        matches!(result, Expr::Call { ref name, ref args } if name == "foo" && args.len() == 2)
+    );
     if let Expr::Call { args, .. } = result {
         assert_eq!(args[0], Expr::Literal(Literal::Int(1)));
         assert_eq!(args[1], Expr::Literal(Literal::Int(2)));
@@ -404,7 +445,9 @@ fn test_call_as_expression() {
 #[test]
 fn test_call_no_args() {
     let result = expression("baz()").unwrap().1;
-    assert!(matches!(result, Expr::Call { ref name, ref args } if name == "baz" && args.is_empty()));
+    assert!(
+        matches!(result, Expr::Call { ref name, ref args } if name == "baz" && args.is_empty())
+    );
 }
 
 #[test]
@@ -412,7 +455,9 @@ fn test_call_in_expression() {
     let result = expression("foo(1) + 2").unwrap().1;
     assert!(matches!(result, Expr::Add(_, _)));
     if let Expr::Add(left, right) = result {
-        assert!(matches!(left.as_ref(), Expr::Call { ref name, ref args } if name == "foo" && args.len() == 1));
+        assert!(
+            matches!(left.as_ref(), Expr::Call { ref name, ref args } if name == "foo" && args.len() == 1)
+        );
         assert_eq!(*right, Expr::Literal(Literal::Int(2)));
     }
 }
@@ -420,7 +465,9 @@ fn test_call_in_expression() {
 #[test]
 fn test_call_as_statement() {
     let result = statement("foo(1, 2)").unwrap().1;
-    assert!(matches!(result, Stmt::Call { ref name, ref args } if name == "foo" && args.len() == 2));
+    assert!(
+        matches!(result, Stmt::Call { ref name, ref args } if name == "foo" && args.len() == 2)
+    );
 }
 
 // --- Blocks ---
@@ -452,7 +499,9 @@ fn test_block_multiple_statements() {
 
 #[test]
 fn test_block_in_function_body() {
-    let result = fun_decl("def foo(x, y) { x = x + 1; y = y + 1 }").unwrap().1;
+    let result = fun_decl("def foo(x, y) { x = x + 1; y = y + 1 }")
+        .unwrap()
+        .1;
     assert!(matches!(result.body.as_ref(), Stmt::Block { ref seq } if seq.len() == 2));
 }
 

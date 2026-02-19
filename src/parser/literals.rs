@@ -29,7 +29,10 @@ pub fn integer_literal(input: &str) -> IResult<&str, i64> {
         let mut chars = rest.chars();
         chars.next(); // skip '.'
         if chars.next().map_or(false, |c| c.is_ascii_digit()) {
-            return Err(nom::Err::Error(nom::error::Error::new(input, nom::error::ErrorKind::Digit)));
+            return Err(nom::Err::Error(nom::error::Error::new(
+                input,
+                nom::error::ErrorKind::Digit,
+            )));
         }
     }
     let value: i64 = digits.parse().map_err(|_| {

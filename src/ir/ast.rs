@@ -30,7 +30,10 @@ pub enum Expr {
     And(Box<Expr>, Box<Expr>),
     Or(Box<Expr>, Box<Expr>),
     /// Function call: name(args)
-    Call { name: String, args: Vec<Expr> },
+    Call {
+        name: String,
+        args: Vec<Expr>,
+    },
 }
 
 /// A function declaration.
@@ -44,16 +47,27 @@ pub struct FunDecl {
 /// A statement.
 #[derive(Debug, Clone, PartialEq)]
 pub enum Stmt {
-    Assign { target: String, value: Box<Expr> },
+    Assign {
+        target: String,
+        value: Box<Expr>,
+    },
     /// Block of statements: `{ stmt ; stmt ; ... }`
-    Block { seq: Vec<Stmt> },
-    Call { name: String, args: Vec<Expr> },
+    Block {
+        seq: Vec<Stmt>,
+    },
+    Call {
+        name: String,
+        args: Vec<Expr>,
+    },
     If {
         cond: Box<Expr>,
         then_branch: Box<Stmt>,
         else_branch: Option<Box<Stmt>>,
     },
-    While { cond: Box<Expr>, body: Box<Stmt> },
+    While {
+        cond: Box<Expr>,
+        body: Box<Stmt>,
+    },
 }
 
 /// A complete MiniC program: function declarations and main body.

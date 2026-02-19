@@ -44,10 +44,9 @@ fn primary(input: &str) -> IResult<&str, Expr> {
 /// Unary: optional unary `-` applied to primary.
 fn unary(input: &str) -> IResult<&str, Expr> {
     alt((
-        map(
-            pair(preceded(multispace0, tag("-")), unary),
-            |(_, e)| Expr::Neg(Box::new(e)),
-        ),
+        map(pair(preceded(multispace0, tag("-")), unary), |(_, e)| {
+            Expr::Neg(Box::new(e))
+        }),
         primary,
     ))(input)
 }

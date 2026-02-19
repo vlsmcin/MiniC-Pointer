@@ -1,9 +1,9 @@
 //! Integration tests for parsing MiniC programs from files.
 
-use MiniC::ir::ast::{Program, Stmt};
-use MiniC::parser::program;
 use nom::combinator::all_consuming;
 use std::path::Path;
+use MiniC::ir::ast::{Program, Stmt};
+use MiniC::parser::program;
 
 fn fixtures_dir() -> std::path::PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures")
@@ -29,7 +29,8 @@ fn test_parse_empty_program() {
 
 #[test]
 fn test_parse_statements_only() {
-    let prog = parse_program_file("statements_only.minic").expect("statements-only program should parse");
+    let prog =
+        parse_program_file("statements_only.minic").expect("statements-only program should parse");
     assert!(prog.functions.is_empty());
     assert_eq!(prog.body.len(), 2);
     assert!(matches!(prog.body[0], Stmt::Assign { ref target, .. } if target == "x"));
@@ -38,17 +39,21 @@ fn test_parse_statements_only() {
 
 #[test]
 fn test_parse_function_single() {
-    let prog = parse_program_file("function_single.minic").expect("single-function program should parse");
+    let prog =
+        parse_program_file("function_single.minic").expect("single-function program should parse");
     assert_eq!(prog.functions.len(), 1);
     assert_eq!(prog.functions[0].name, "foo");
     assert!(prog.functions[0].params.is_empty());
-    assert!(matches!(prog.functions[0].body.as_ref(), Stmt::Assign { ref target, .. } if target == "x"));
+    assert!(
+        matches!(prog.functions[0].body.as_ref(), Stmt::Assign { ref target, .. } if target == "x")
+    );
     assert!(prog.body.is_empty());
 }
 
 #[test]
 fn test_parse_function_with_block() {
-    let prog = parse_program_file("function_with_block.minic").expect("function with block should parse");
+    let prog =
+        parse_program_file("function_with_block.minic").expect("function with block should parse");
     assert_eq!(prog.functions.len(), 1);
     assert_eq!(prog.functions[0].name, "add");
     assert_eq!(prog.functions[0].params, vec!["x", "y"]);

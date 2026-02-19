@@ -1,6 +1,7 @@
 //! Identifier parser for MiniC.
 
-use nom::{bytes::complete::{take_while, take_while1},
+use nom::{
+    bytes::complete::{take_while, take_while1},
     combinator::{recognize, verify},
     sequence::pair,
     IResult,
