@@ -2,6 +2,7 @@
 
 use crate::ir::ast::{Expr, ExprD, Statement, StatementD, UncheckedExpr, UncheckedStmt};
 use crate::parser::expressions::{expression, parse_call};
+use crate::parser::functions::type_name;
 use crate::parser::identifiers::identifier;
 use nom::{
     branch::alt,
@@ -17,7 +18,7 @@ fn wrap(s: Statement<()>) -> UncheckedStmt {
     StatementD { stmt: s, ty: () }
 }
 
-/// Parse any statement: if | while | call | block | assignment.
+/// Parse any statement: if | while | call | block | decl | assignment.
 pub fn statement(input: &str) -> IResult<&str, UncheckedStmt> {
     preceded(
         multispace0,
@@ -26,8 +27,28 @@ pub fn statement(input: &str) -> IResult<&str, UncheckedStmt> {
             while_statement,
             call_statement,
             block_statement,
+            decl_statement,
             assignment,
         )),
+    )(input)
+}
+
+/// Parse a variable declaration: `Type ident = expr`. Must come before assignment.
+fn decl_statement(input: &str) -> IResult<&str, UncheckedStmt> {
+    map(
+        tuple((
+            type_name,
+            preceded(nom::character::complete::multispace1, identifier),
+            preceded(multispace0, nom::bytes::complete::tag("=")),
+            preceded(multispace0, expression),
+        )),
+        |(ty, name, _, init)| {
+            wrap(Statement::Decl {
+                name: name.to_string(),
+                ty,
+                init: Box::new(init),
+            })
+        },
     )(input)
 }
 

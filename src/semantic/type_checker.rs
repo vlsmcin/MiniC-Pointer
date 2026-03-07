@@ -77,6 +77,27 @@ fn type_check_stmt(
     env: &mut Environment<Type>,
 ) -> Result<CheckedStmt, TypeError> {
     let stmt = match &s.stmt {
+        Statement::Decl { name, ty, init } => {
+            if ty == &Type::Unit {
+                return Err(TypeError::new("cannot declare variable of type void"));
+            }
+            if env.lookup(name).is_some() {
+                return Err(TypeError::new(format!("redeclaration of variable: {}", name)));
+            }
+            let init_checked = type_check_expr_to_typed(init, env)?;
+            if !types_compatible(&init_checked.ty, ty) {
+                return Err(TypeError::new(format!(
+                    "declaration of {}: expected {:?}, got {:?}",
+                    name, ty, init_checked.ty
+                )));
+            }
+            env.add_binding(name.clone(), ty.clone());
+            Statement::Decl {
+                name: name.clone(),
+                ty: ty.clone(),
+                init: Box::new(init_checked),
+            }
+        }
         Statement::Assign { target, value } => {
             let value_checked = type_check_expr_to_typed(value, env)?;
             type_check_assign_target(&target.exp, &value_checked.ty, env)?;
@@ -185,7 +206,15 @@ fn type_check_assign_target(
 ) -> Result<(), TypeError> {
     match target {
         Expr::Ident(name) => {
-            env.add_binding(name.clone(), value_ty.clone());
+            let declared_ty = env
+                .lookup(name)
+                .ok_or_else(|| TypeError::new(format!("undeclared variable: {}", name)))?;
+            if !types_compatible(value_ty, declared_ty) {
+                return Err(TypeError::new(format!(
+                    "assignment to {}: expected {:?}, got {:?}",
+                    name, declared_ty, value_ty
+                )));
+            }
             Ok(())
         }
         Expr::Index { base, index } => {

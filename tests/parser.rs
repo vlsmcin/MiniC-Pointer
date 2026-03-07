@@ -335,6 +335,24 @@ fn test_invalid_assignment() {
 }
 
 #[test]
+fn test_decl_statement() {
+    let result = statement("int x = 42").unwrap().1;
+    assert!(matches!(result.stmt, Statement::Decl { ref name, ref ty, .. }
+        if name == "x" && ty == &Type::Int));
+    if let Statement::Decl { ref init, .. } = result.stmt {
+        assert_eq!(init.exp, Expr::Literal(Literal::Int(42)));
+    }
+
+    let result = statement("float y = 3.14").unwrap().1;
+    assert!(matches!(result.stmt, Statement::Decl { ref name, ref ty, .. }
+        if name == "y" && ty == &Type::Float));
+
+    let result = statement("int[] arr = [1, 2, 3]").unwrap().1;
+    assert!(matches!(result.stmt, Statement::Decl { ref name, ref ty, .. }
+        if name == "arr" && matches!(ty, Type::Array(_))));
+}
+
+#[test]
 fn test_if_without_else() {
     let result = statement("if x then y = 1").unwrap().1;
     assert!(matches!(

@@ -2,7 +2,7 @@
 
 use nom::combinator::all_consuming;
 use std::path::Path;
-use mini_c::ir::ast::{Expr, Statement, Type, UncheckedProgram};
+use mini_c::ir::ast::{Statement, Type, UncheckedProgram};
 use mini_c::parser::program;
 
 fn fixtures_dir() -> std::path::PathBuf {
@@ -34,8 +34,8 @@ fn test_parse_main_only() {
     assert_eq!(prog.functions[0].name, "main");
     assert!(matches!(prog.functions[0].body.stmt, Statement::Block { ref seq } if seq.len() == 2));
     if let Statement::Block { ref seq } = prog.functions[0].body.stmt {
-        assert!(matches!(seq[0].stmt, Statement::Assign { ref target, .. } if matches!(target.exp, Expr::Ident(ref s) if s == "x")));
-        assert!(matches!(seq[1].stmt, Statement::Assign { ref target, .. } if matches!(target.exp, Expr::Ident(ref s) if s == "y")));
+        assert!(matches!(seq[0].stmt, Statement::Decl { ref name, .. } if name == "x"));
+        assert!(matches!(seq[1].stmt, Statement::Decl { ref name, .. } if name == "y"));
     }
 }
 
@@ -47,7 +47,7 @@ fn test_parse_function_single() {
     assert_eq!(prog.functions[0].name, "foo");
     assert!(prog.functions[0].params.is_empty());
     assert!(
-        matches!(prog.functions[0].body.stmt, Statement::Assign { ref target, .. } if matches!(target.exp, Expr::Ident(ref s) if s == "x"))
+        matches!(prog.functions[0].body.stmt, Statement::Decl { ref name, .. } if name == "x")
     );
 }
 
@@ -74,7 +74,7 @@ fn test_parse_full_program() {
     if let Statement::Block { ref seq } = main_body {
         assert_eq!(seq.len(), 2);
         assert!(matches!(seq[0].stmt, Statement::Call { ref name, .. } if name == "inc"));
-        assert!(matches!(seq[1].stmt, Statement::Assign { ref target, .. } if matches!(target.exp, Expr::Ident(ref s) if s == "y")));
+        assert!(matches!(seq[1].stmt, Statement::Decl { ref name, .. } if name == "y"));
     } else {
         panic!("expected main to have block body");
     }

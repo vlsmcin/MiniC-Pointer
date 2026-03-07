@@ -13,11 +13,15 @@ use nom::{
     IResult,
 };
 
-/// Parse a type name: int | float | bool | str | void (C-style lowercase).
-fn type_name(input: &str) -> IResult<&str, Type> {
+/// Parse a type name: int | float | bool | str | void | int[] | float[] | ... (C-style lowercase).
+pub fn type_name(input: &str) -> IResult<&str, Type> {
     preceded(
         multispace0,
         alt((
+            map(tag("int[]"), |_| Type::Array(Box::new(Type::Int))),
+            map(tag("float[]"), |_| Type::Array(Box::new(Type::Float))),
+            map(tag("bool[]"), |_| Type::Array(Box::new(Type::Bool))),
+            map(tag("str[]"), |_| Type::Array(Box::new(Type::Str))),
             map(tag("int"), |_| Type::Int),
             map(tag("float"), |_| Type::Float),
             map(tag("bool"), |_| Type::Bool),

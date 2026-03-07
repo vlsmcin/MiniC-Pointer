@@ -78,6 +78,12 @@ pub struct StatementD<Ty> {
 /// A statement.
 #[derive(Debug, Clone, PartialEq)]
 pub enum Statement<Ty> {
+    /// Variable declaration with initialization: `int x = expr`.
+    Decl {
+        name: String,
+        ty: Type,
+        init: Box<ExprD<Ty>>,
+    },
     Assign {
         target: Box<ExprD<Ty>>,
         value: Box<ExprD<Ty>>,
