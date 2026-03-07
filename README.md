@@ -1,6 +1,8 @@
 # MiniC
 
-A minimal C-like language parser and semantic analyzer written in Rust. MiniC parses source code into an abstract syntax tree (AST), type-checks it, and produces a typed AST suitable for interpretation or code generation.
+**[→ Short summary of MiniC](doc/summary.md)** — language overview, types, and pipeline.
+
+---
 
 ## Quick Start
 
@@ -9,51 +11,51 @@ cargo build
 cargo test
 ```
 
-## Project Structure
+---
+
+## Architecture
+
+MiniC is organized into these main components:
+
+| Component | Path | Description |
+|-----------|------|-------------|
+| [**AST**](doc/architecture/ast.md) | `src/ir/` | Abstract syntax tree parameterized by phase (unchecked vs checked). Defines `Expr`, `Statement`, `Program`, and type synonyms (`UncheckedProgram`, `CheckedProgram`, etc.). |
+| [**Parser**](doc/architecture/parser.md) | `src/parser/` | Parser combinators using [nom](https://github.com/rust-bakery/nom). Parses literals, expressions, statements, and function declarations into an unchecked AST. |
+| [**Semantic**](doc/design/type-checker.md) | `src/semantic/` | Type checker. Consumes unchecked AST, validates types, produces checked AST. Requires `main`; enforces variable declarations and type compatibility. |
+| [**Environment**](src/environment/) | `src/environment/` | Symbol table for variable bindings and function signatures. Used by the type checker for name resolution. |
 
 ```
 src/
-├── ir/           # Intermediate representation (AST)
-├── parser/       # Parser (nom combinators)
-└── semantic/     # Type checker
+├── ir/           # AST (ast.rs, mod.rs)
+├── parser/       # Parser (expressions, statements, functions, literals, identifiers)
+├── semantic/     # Type checker
+└── environment/  # Environment (variable bindings, function signatures)
 ```
 
-## Documentation
+---
 
-The following documents explain the architecture and key design decisions. **Start here** if you want to understand how MiniC works.
+## Testing
 
-### Architecture
+MiniC uses **integration tests** in the `tests/` directory. All tests use only the public API; there are no `#[cfg(test)]` blocks in source modules.
 
-| Document | Description |
-|----------|-------------|
-| [**AST: Checked vs Unchecked**](doc/architecture/ast.md) | How the AST is parameterized by phase (`ExprD<()>` vs `ExprD<Type>`), type synonyms, and the parser → type checker → interpreter pipeline |
-| [**Parser**](doc/architecture/parser.md) | Parser combinators, nom, operator precedence, left-associativity, and array parsing |
-| [**Test Architecture**](doc/architecture/tests.md) | How tests are organized, examples of parser/program/type-checker tests, and how to add new tests |
+| Test file | Purpose |
+|-----------|---------|
+| [**parser.rs**](tests/parser.rs) | Parser unit-style tests: literals, identifiers, expressions, statements. Uses inline strings. |
+| [**program.rs**](tests/program.rs) | Full-program parsing from fixture files in `tests/fixtures/`. |
+| [**type_checker.rs**](tests/type_checker.rs) | Semantic tests: parse + type-check, assert on success/failure or typed AST. |
 
-### Design Decisions
+**Run all tests:** `cargo test`
 
-| Document | Description |
-|----------|-------------|
-| [**Type Checker Design**](doc/design/type-checker.md) | Design alternatives (two ASTs vs generic parameter vs `Option<Type>`), int/float coercion rules, and type representation |
+For details on test organization, patterns, and how to add new tests, see [**Test Architecture**](doc/architecture/tests.md).
 
-### Specifications
+---
 
-Formal specs live under [openspec/specs/](openspec/specs/) and [openspec/changes/](openspec/changes/). The main specs cover:
+## Specifications
+
+Formal specs live under [openspec/specs/](openspec/specs/) and [openspec/changes/](openspec/changes/). Main specs:
 
 - [AST](openspec/specs/ast/spec.md)
 - [Functions](openspec/specs/functions/spec.md)
 - [Arrays](openspec/specs/arrays/spec.md)
+- [Type checker](openspec/specs/type-checker/spec.md)
 - [Parser documentation](openspec/specs/parser-docs/spec.md)
-
-## Contributing
-
-If you want to contribute (e.g. add a feature or fix a bug), start by reading the [Test Architecture](doc/architecture/tests.md) doc. It explains how tests are organized and how to add new ones, with concrete examples for parser, program, and type-checker tests.
-
-## Key Concepts
-
-- **Program structure** — Functions only; execution starts at `main`
-- **Unchecked AST** (`Program<()>`, `ExprD<()>`) — Parser output; no type information
-- **Checked AST** (`Program<Type>`, `ExprD<Type>`) — Type checker output; every node has a `Type`
-- **Phase separation** — Downstream phases (interpreter, codegen) accept only checked AST; Rust's type system enforces this
-
-For full details, see [doc/architecture/ast.md](doc/architecture/ast.md).
