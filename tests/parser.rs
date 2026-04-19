@@ -9,6 +9,7 @@ use mini_c::parser::{
     },
     statement,
 };
+use mini_c::parser::functions::type_name;
 
 // --- Literals ---
 
@@ -671,4 +672,56 @@ fn test_array_in_expression() {
     let result = expression("[1, 2][0]").unwrap().1;
     assert!(matches!(result.exp, Expr::Index { ref base, ref index }
         if matches!(base.exp, Expr::ArrayLit(_)) && index.exp == Expr::Literal(Literal::Int(0))));
+}
+
+// --- Pointers (`Type::Pointer` + `type_name`: int*, float*, …) ---
+
+#[test]
+fn test_pointer_type_name() {
+    assert_eq!(
+        type_name("int*"),
+        Ok(("", Type::Pointer(Box::new(Type::Int))))
+    );
+    assert_eq!(
+        type_name("float*"),
+        Ok(("", Type::Pointer(Box::new(Type::Float))))
+    );
+    assert_eq!(
+        type_name("bool*"),
+        Ok(("", Type::Pointer(Box::new(Type::Bool))))
+    );
+    assert_eq!(
+        type_name("str*"),
+        Ok(("", Type::Pointer(Box::new(Type::Str))))
+    );
+    // `int*` deve ser reconhecido antes de `int` (caso contrário vira só Int).
+    assert_eq!(type_name("int"), Ok(("", Type::Int)));
+}
+
+#[test]
+fn test_pointer_variable_declaration() {
+    let result = statement("int* ptr = q;").unwrap().1;
+    assert!(matches!(
+        result.stmt,
+        Statement::Decl {
+            ref name,
+            ref ty,
+            ..
+        } if name == "ptr" && ty == &Type::Pointer(Box::new(Type::Int))
+    ));
+    if let Statement::Decl { ref init, .. } = result.stmt {
+        assert!(matches!(init.exp, Expr::Ident(ref s) if s == "q"));
+    }
+}
+
+#[test]
+fn test_pointer_address_of() {
+    let result = expression("&x").unwrap().1;
+    assert!(matches!(result.exp, Expr::AddrOf(ref target) if matches!(target.exp, Expr::Ident(ref s) if s == "x")));
+}
+
+#[test]
+fn test_pointer_dereference() {
+    let result = expression("*p").unwrap().1;
+    assert!(matches!(result.exp, Expr::Deref(ref target) if matches!(target.exp, Expr::Ident(ref s) if s == "p")));
 }
