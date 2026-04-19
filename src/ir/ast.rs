@@ -58,6 +58,7 @@ pub enum Type {
     Str,
     Array(Box<Type>),
     Fun(Vec<Type>, Box<Type>),
+    Pointer(Box<Type>),
     /// Matches any type. Only used as a parameter type in native stdlib registrations.
     Any,
 }
