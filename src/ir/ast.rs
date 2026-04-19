@@ -111,6 +111,9 @@ pub enum Expr<Ty> {
         base: Box<ExprD<Ty>>,
         index: Box<ExprD<Ty>>,
     },
+    /// Pointer operations
+    AddrOf(Box<ExprD<Ty>>),
+    Deref(Box<ExprD<Ty>>),
 }
 
 /// Statement with type decoration.
