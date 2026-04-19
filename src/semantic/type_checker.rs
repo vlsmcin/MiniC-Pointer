@@ -416,6 +416,9 @@ fn type_check_expr_inner(
             base: Box::new(type_check_expr_to_typed(base, env)?),
             index: Box::new(type_check_expr_to_typed(index, env)?),
         }),
+        Expr::AddrOf(_) | Expr::Deref(_) => Err(TypeError::new(
+            "address-of and dereference are not implemented in the type checker yet",
+        )),
     }
 }
 
@@ -543,6 +546,9 @@ fn type_check_expr(
                 Err(TypeError::new("indexed expression must be array"))
             }
         }
+        Expr::AddrOf(_) | Expr::Deref(_) => Err(TypeError::new(
+            "address-of and dereference are not implemented in the type checker yet",
+        )),
     }
 }
 
