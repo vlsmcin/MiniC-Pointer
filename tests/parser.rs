@@ -725,3 +725,34 @@ fn test_pointer_dereference() {
     let result = expression("*p").unwrap().1;
     assert!(matches!(result.exp, Expr::Deref(ref target) if matches!(target.exp, Expr::Ident(ref s) if s == "p")));
 }
+
+#[test]
+fn test_pointer_params_function() {
+    let result = fun_decl("void foo(int* p) { *p = 42; }").unwrap().1;
+    assert_eq!(result.name, "foo");
+    assert_eq!(
+        result.params,
+        vec![("p".to_string(), Type::Pointer(Box::new(Type::Int)))]
+    );
+    assert!(matches!(result.body.stmt, Statement::Block { ref seq } if seq.len() == 1));
+    if let Statement::Block { ref seq } = &result.body.stmt {
+        assert!(matches!(seq[0].stmt, Statement::Assign { ref target, ref value }
+            if matches!(target.exp, Expr::Deref(ref t) if matches!(t.exp, Expr::Ident(ref s) if s == "p"))
+            && value.exp == Expr::Literal(Literal::Int(42))));
+    }
+}
+
+#[test]
+fn test_pointer_type_function() {
+    let result = fun_decl("int* changeRef(int* x, int* y) { x = y; return x; }")
+        .unwrap()
+        .1;
+    assert_eq!(result.name, "changeRef");
+    assert_eq!(
+        result.params,
+        vec![
+            ("x".to_string(), Type::Pointer(Box::new(Type::Int))),
+            ("y".to_string(), Type::Pointer(Box::new(Type::Int)))
+        ]
+    );
+}
