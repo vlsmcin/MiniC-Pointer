@@ -36,7 +36,7 @@
 use crate::environment::Environment;
 use crate::ir::ast::{CheckedExpr, CheckedStmt, Expr, Statement};
 
-use super::eval_expr::{eval_call, eval_expr, ptr_target, write_through};
+use super::eval_expr::{eval_call, eval_expr};
 use super::value::{RuntimeError, Value};
 
 /// `None` = normal fall-through; `Some(v)` = early return with value.
@@ -63,14 +63,16 @@ pub fn exec_stmt(stmt: &CheckedStmt, env: &mut Environment<Value>) -> ExecResult
         // Only remove variables declared inside the block on exit.
         // Assignments to outer-scope variables must persist (e.g., loop counters).
         Statement::Block { seq } => {
-            let outer_keys = env.names();
-            for s in seq {
-                if let Some(ret) = exec_stmt(s, env)? {
-                    env.remove_new(&outer_keys);
-                    return Ok(Some(ret));
+            let snapshot = env.snapshot();
+            
+            for stmt in seq {
+                if let Some(val) = exec_stmt(stmt, env)? {
+                    env.restore(snapshot.clone());
+                    return Ok(Some(val));
                 }
             }
-            env.remove_new(&outer_keys);
+            
+            env.restore(snapshot);
             Ok(None)
         }
 
@@ -159,8 +161,16 @@ fn assign_lvalue(
             assign_index(base, idx, val, env)
         }
         Expr::Deref(inner) => {
-            let target = ptr_target(eval_expr(inner, env)?)?;
-            write_through(env, &target, val)
+            let ptr_val = eval_expr(inner, env)?;
+            if let Value::Ptr(addr) = ptr_val {
+                if env.write_store(addr, val) {
+                    Ok(())
+                } else {
+                    Err(RuntimeError::new(format!("invalid memory address '{}'", addr)))
+                }
+            } else {
+                Err(RuntimeError::new("cannot assign to dereference of non-pointer"))
+            }
         }
         _ => Err(RuntimeError::new("invalid assignment target".to_string())),
     }
