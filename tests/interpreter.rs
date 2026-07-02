@@ -469,25 +469,56 @@ fn test_pointer_parameter_aliasing_updates_caller_variable() {
 
     let mut env = build_program_env(&program);
     env.declare("x".to_string(), Value::Int(10));
-    eval_call("increment", vec![Value::Ptr("x".to_string())], &mut env)
+
+    let addr_x = env.get_address("x").expect("x deveria ter um endereço");
+    eval_call("increment", vec![Value::Ptr(addr_x)], &mut env)
         .expect("pointer function call failed");
 
     assert_eq!(env.get("x"), Some(&Value::Int(11)));
 }
 
 #[test]
-fn test_pointer_dangling_after_return_is_runtime_error() {
-    let src = r#"
-        int* leak(int x) {
-            return &x;
-        }
-        void main() {
-            int* p = leak(10);
-            int y = *p;
-        }
-    "#;
+fn test_pointer_escaping_local_scope_survives_in_store() {
+    let program = checked_program(
+        r#"
+            int* leak(int x) {
+                return &x;
+            }
+            void main() {
+                int* p = leak(10);
+                int y = *p;
+            }
+        "#,
+    )
+    .unwrap();
 
-    let result = run(src);
-    assert!(result.is_err(), "expected dangling pointer runtime error");
-    assert!(result.unwrap_err().contains("dereference of invalid target"));
+    let mut env = build_program_env(&program);
+    exec_stmt_sequence(main_body_sequence(&program).unwrap(), &mut env).unwrap();
+
+    assert_eq!(env.get("y"), Some(&Value::Int(10)));
+}
+
+#[test]
+fn test_traditional_stack_and_heap_separation() {
+    let mut env = Environment::new();
+    
+    env.declare("x".to_string(), Value::Int(10));
+    let addr_x = env.get_address("x").unwrap();
+    
+    let snapshot = env.snapshot();
+    
+    env.declare("p".to_string(), Value::Ptr(addr_x));
+    
+    if let Some(&Value::Ptr(target_addr)) = env.get("p") {
+        env.write_store(target_addr, Value::Int(11));
+    }
+    
+    env.restore(snapshot);
+    
+    assert!(env.get("p").is_none(), "O isolamento de escopo falhou, 'p' vazou.");
+    assert_eq!(
+        env.get("x"), 
+        Some(&Value::Int(11)), 
+        "A mutação de memória foi perdida! A Store foi indevidamente revertida."
+    );
 }
