@@ -105,7 +105,7 @@ pub enum Value {
     Void,
     Fn(FnValue),
     /// Pointer: holds the name of the target variable in the environment.
-    Ptr(String),
+    Ptr(usize),
 }
 
 impl fmt::Display for Value {
