@@ -123,7 +123,7 @@ pub fn type_check(program: &UncheckedProgram) -> Result<CheckedProgram, TypeErro
 fn type_check_fun_decl(
     f: &UncheckedFunDecl,
     env: &mut Environment<Type>,
-    fn_snapshot: &HashMap<String, Type>,
+    fn_snapshot: &HashMap<String, usize>,
 ) -> Result<CheckedFunDecl, TypeError> {
     // Restore to clean function-only state, then add parameters.
     env.restore(fn_snapshot.clone());
