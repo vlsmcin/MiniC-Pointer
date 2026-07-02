@@ -58,13 +58,15 @@ fn test_if_else_with_relational_condition() {
     let temp = Address::Temporary("temp1".to_string(), Type::Int);
 
     assert_eq!(instructions, vec![
-        Instruction::ConditionalJMPRelational(Operator::GTE, x.clone(), y.clone(), "Label1:".to_string()),
-        Instruction::BinaryAssignment(Operator::Add, temp.clone(), x.clone(), y.clone()),
-        Instruction::CopyAssignment(z.clone(), temp),
+        Instruction::ConditionalJMPRelational(Operator::LT, x.clone(), y.clone(), "Label1:".to_string()),
         Instruction::JMP("Label2:".to_string()),
         Instruction::Label("Label1:".to_string()),
-        Instruction::CopyAssignment(z, x),
+        Instruction::BinaryAssignment(Operator::Add, temp.clone(), x.clone(), y.clone()),
+        Instruction::CopyAssignment(z.clone(), temp),
+        Instruction::JMP("Label3:".to_string()),
         Instruction::Label("Label2:".to_string()),
+        Instruction::CopyAssignment(z, x),
+        Instruction::Label("Label3:".to_string()),
     ]);
 }
 

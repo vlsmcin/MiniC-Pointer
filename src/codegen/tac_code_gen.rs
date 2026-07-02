@@ -27,6 +27,7 @@ impl Environment {
     }
 }
 
+#[allow(dead_code)]
 fn translate_program(program: CheckedProgram, env: &mut Environment) -> TACProgram {
     let main_fn = program.main_function();
     match main_fn {
@@ -36,6 +37,7 @@ fn translate_program(program: CheckedProgram, env: &mut Environment) -> TACProgr
 
 }
 
+#[allow(dead_code)]
 fn translate_function(function: CheckedFunDecl, env: &mut Environment) -> TACProgram {
     let mut instructions =
         if let Statement::Block { seq : stmts } = function.body.stmt {

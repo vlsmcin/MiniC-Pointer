@@ -155,48 +155,24 @@ pub fn eval_expr(expr: &CheckedExpr, env: &mut Environment<Value>) -> Result<Val
 fn eval_addr_of(elem: &CheckedExpr, env: &Environment<Value>) -> Result<Value, RuntimeError> {
     match &elem.exp {
         Expr::Ident(name) => {
-            if env.get(name).is_none() {
-                return Err(RuntimeError::new(format!("undefined variable '{}'", name)));
+            if let Some(addr) = env.get_address(name) {
+                Ok(Value::Ptr(addr))
+            } else {
+                Err(RuntimeError::new(format!("undefined variable '{}'", name)))
             }
-            Ok(Value::Ptr(name.clone()))
         }
         _ => Err(RuntimeError::new("can only take address of variables")),
     }
 }
 
 fn eval_deref(elem: &CheckedExpr, env: &mut Environment<Value>) -> Result<Value, RuntimeError> {
-    let target = ptr_target(eval_expr(elem, env)?)?;
-    read_through(env, &target)
-}
-
-/// Extract the target variable name from a pointer value.
-pub(crate) fn ptr_target(val: Value) -> Result<String, RuntimeError> {
-    match val {
-        Value::Ptr(target) => Ok(target),
-        v => Err(RuntimeError::new(format!("expected pointer, got: {}", v))),
-    }
-}
-
-/// Read the value stored at the variable named by a pointer.
-pub(crate) fn read_through(env: &Environment<Value>, target: &str) -> Result<Value, RuntimeError> {
-    env.get(target)
-        .cloned()
-        .ok_or_else(|| RuntimeError::new(format!("dereference of invalid target '{}'", target)))
-}
-
-/// Write `val` into the variable named by a pointer.
-pub(crate) fn write_through(
-    env: &mut Environment<Value>,
-    target: &str,
-    val: Value,
-) -> Result<(), RuntimeError> {
-    if env.set(target, val) {
-        Ok(())
+    let ptr_val = eval_expr(elem, env)?;
+    if let Value::Ptr(addr) = ptr_val {
+        env.read_store(addr).cloned().ok_or_else(|| {
+            RuntimeError::new(format!("dereference of invalid address '{}'", addr))
+        })
     } else {
-        Err(RuntimeError::new(format!(
-            "dereference of invalid target '{}'",
-            target
-        )))
+        Err(RuntimeError::new("cannot dereference non-pointer value"))
     }
 }
 
@@ -219,21 +195,14 @@ pub fn eval_call(
             }
             
             let snapshot = env.snapshot();
-            let outer_keys = env.names(); 
-            
+
             for ((param_name, _), val) in decl.params.iter().zip(args.into_iter()) {
                 env.declare(param_name.clone(), val);
             }
             
             let result = exec_stmt(&decl.body, env)?;
             
-            env.remove_new(&outer_keys);
-            
-            for (param_name, _) in decl.params.iter() {
-                if let Some(old_val) = snapshot.get(param_name) {
-                    env.declare(param_name.clone(), old_val.clone()); 
-                }
-            }
+            env.restore(snapshot);
             
             Ok(result.unwrap_or(Value::Void))
         }
